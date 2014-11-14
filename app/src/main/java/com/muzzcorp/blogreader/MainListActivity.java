@@ -14,6 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ public class MainListActivity extends ListActivity {
     protected String[] mBlogPostTitles;
     public static final int NUMBER_OF_POSTS = 20;
     public static final String TAG = MainListActivity.class.getSimpleName();
+    protected JSONObject mBlogData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,11 +70,24 @@ public class MainListActivity extends ListActivity {
         return true;
     }
 
-    private class GetBlogPostsTask extends AsyncTask<Object, Void, String> {
+    private void updateList() {
+        if (mBlogData == null) {
+            //TODO: Handle error
+        } else {
+            try {
+                Log.d(TAG, mBlogData.toString(2));
+            } catch (JSONException e) {
+                Log.e(TAG, "Exception Caught: ", e);
+            }
+        }
+    }
+
+    private class GetBlogPostsTask extends AsyncTask<Object, Void, JSONObject> {
 
         @Override
-        protected String doInBackground(Object... arg0) {
+        protected JSONObject doInBackground(Object... arg0) {
             int responseCode = -1;
+            JSONObject jsonResponse = null;
             try {
                 URL blogFeedUrl = new URL("http://blog.teamtreehouse.com/api/get_recent_summary/?count=" + NUMBER_OF_POSTS);
                 HttpURLConnection connection = (HttpURLConnection) blogFeedUrl.openConnection();
@@ -86,7 +101,7 @@ public class MainListActivity extends ListActivity {
                     char[] charArray = new char[contentLength];
                     reader.read(charArray);
                     String responseData = new String(charArray);
-                    JSONObject jsonResponse = new JSONObject(responseData);
+                    jsonResponse = new JSONObject(responseData);
                     String status = jsonResponse.getString("status");
                     Log.v(TAG, status);
 
@@ -107,9 +122,17 @@ public class MainListActivity extends ListActivity {
                 Log.e(TAG, "Exception caught: ", e);
             }
 
-            return "Code: " + responseCode;
+            return jsonResponse;
+        }
+
+        @Override
+        protected void onPostExecute(JSONObject result) {
+            mBlogData = result;
+            updateList();
         }
     }
+
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
